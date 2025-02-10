@@ -34,4 +34,16 @@ public class FlightServiceTest {
         assertEquals(3, filteredFlights.size());
     }
 
+    @Test
+    void mySecTest(){
+        List <Predicate<Flight>> filters = Arrays.asList(
+                new TransferTimeFilter(2),
+                new InconsistentDateFlightFilter(),
+                new DepartedFlightFilter(LocalDateTime.of(2025, 2, 9, 19, 0, 0))
+        );
+        service.setFilterParams(filters);
+        List <Flight> filteredFlights = service.filter(flights);
+        assertEquals(3, filteredFlights.size());
+    }
+
 }

@@ -1,26 +1,23 @@
 package dalbridt.petjava.flightservice;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+import static dalbridt.petjava.flightservice.DBConnectProperties.*;
 
 public class Main {
-    public static void main(String[] args) {
-        List<Flight> flights = FlightBuilder.createFlights();
-        List <Flight> flights2 = new ArrayList<>(flights);
+    public static void main(String[] args) throws ClassNotFoundException, SQLException {
 
+        try(Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)){
+            if(connection != null){
+                System.out.println("Connected to database");
+            } else {
+                System.out.println("Could not connect to database");
+            }
 
-        FlightService service = new FlightService(new TransferTimeFilter(2),
-                new InconsistentDateFlightFilter(),
-                new DepartedFlightFilter(LocalDateTime.of(2025, 2, 9, 19, 0, 0)));
-
-        service.printFlights(flights, "before");
-
-        List<Flight> filteredFlights = service.filter(flights);
-        service.printFlights(filteredFlights, "after");
-
-        List<Flight> filteredFlights2 = service.filter_collections(flights2);
-        service.printFlights(filteredFlights2, "after - 2 ");
-
+        }catch(Exception e){
+            System.out.println("‼️" + e.getMessage());
+        }
     }
 }
