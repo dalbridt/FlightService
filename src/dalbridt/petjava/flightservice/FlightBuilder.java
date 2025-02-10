@@ -1,3 +1,5 @@
+package dalbridt.petjava.flightservice;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,15 +12,15 @@ class FlightBuilder {
     static List<Flight> createFlights() {
         LocalDateTime threeDaysFromNow = LocalDateTime.now().plusDays(3);
         return Arrays.asList(
-                //A normal flight with two hour duration
+                //1 A normal flight with two hour duration
                 createFlight(threeDaysFromNow, threeDaysFromNow.plusHours(2)),
-                //A normal multi segment flight
+                //2 A normal multi segment flight
                 createFlight(threeDaysFromNow, threeDaysFromNow.plusHours(2),
                         threeDaysFromNow.plusHours(3), threeDaysFromNow.plusHours(5)),
-                //A normal flight that departs in future
+                //3 A normal flight that departs in future
                 createFlight(threeDaysFromNow.plusDays(5), threeDaysFromNow.plusDays(5).plusHours(2),
                         threeDaysFromNow.plusDays(5).plusHours(3), threeDaysFromNow.plusDays(5).plusHours(5)),
-                //A flight departing in the past
+                //4 A flight departing in the past
                 createFlight(threeDaysFromNow.minusDays(6), threeDaysFromNow),
                 //A flight that departs before it arrives
                 createFlight(threeDaysFromNow, threeDaysFromNow.minusHours(6)),
