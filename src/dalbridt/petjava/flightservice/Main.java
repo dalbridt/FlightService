@@ -1,19 +1,58 @@
 package dalbridt.petjava.flightservice;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static dalbridt.petjava.flightservice.DBConnectProperties.*;
 
 public class Main {
+//    public static void main(String[] args) {
+//        List<Route> routes = FlightBuilder.createFlights();
+//
+//        FlightService service = new FlightService (new TransferTimeFilter(2),
+//                new InconsistentDateFlightFilter(),
+//                new DepartedFlightFilter(LocalDateTime.of(2025, 1, 9, 19, 0, 0)));
+//        List <Route> filteredFlights = service.filter(routes);
+//
+//        int []count  = {1};
+//
+//        routes.forEach(f -> {
+//            System.out.println(count[0]++ + " " + f);
+//        });
+//
+//        System.out.println(" --- filtered: --- ");
+//
+//        filteredFlights.forEach(f -> {
+//            System.out.println(count[0]++ + " " + f);
+//        });
+//
+//    }
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
 
         try(Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)){
-            if(connection != null){
-                System.out.println("Connected to database");
-            } else {
-                System.out.println("Could not connect to database");
+            String sql = "    SELECT *\n" +
+                         "    FROM flights\n" +
+                         "    WHERE departure_airport LIKE ?\n" +
+                         "    AND arrival_airport LIKE ?\n" +
+                         "    AND status LIKE ?\n" +
+                         "    AND scheduled_departure >= ?\n" +
+                         "    AND scheduled_departure < ?\n" +
+                         "    ORDER BY scheduled_departure\n";
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+                pstmt.setString(1, "LED");
+                pstmt.setString(2, "CEE");
+                pstmt.setString(3, "Scheduled");
+                pstmt.setTimestamp(4, Timestamp.valueOf("2017-08-17 00:00:00"));
+                pstmt.setTimestamp(5, Timestamp.valueOf("2017-09-18 00:00:00"));
+            ResultSet rs = pstmt.executeQuery();
+            int counter = 1;
+            while(rs.next()){
+                String flightNo = rs.getString("flight_no");
+                Timestamp departureTime = rs.getTimestamp("scheduled_departure");
+                Timestamp arrivalTime = rs.getTimestamp("scheduled_arrival");
+                System.out.println(counter++ + flightNo + "\t" + departureTime + "\t" + arrivalTime);
+
             }
 
         }catch(Exception e){

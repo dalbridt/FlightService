@@ -2,11 +2,11 @@ package dalbridt.petjava.flightservice;
 
 import java.util.function.Predicate;
 
-public class InconsistentDateFlightFilter implements Predicate<Flight> { // TODO check if 2 equal dates
+public class InconsistentDateFlightFilter implements Predicate<Route> { // TODO check if 2 equal dates
     @Override
-    public boolean test(Flight flight) {
-        for (Segment segment : flight.getSegments()) {
-            if (segment.getArrivalDate().isBefore(segment.getDepartureDate()) || segment.getDepartureDate().isEqual(segment.getArrivalDate())) {
+    public boolean test(Route route) {
+        for (Flight flight : route.getSegments()) {
+            if (flight.getArrivalDate().isBefore(flight.getDepartureDate()) || flight.getDepartureDate().isEqual(flight.getArrivalDate())) {
                 return false;
             }
         }
