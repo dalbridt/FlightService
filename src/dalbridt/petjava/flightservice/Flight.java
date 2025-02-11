@@ -10,20 +10,20 @@ import java.util.stream.Collectors;
 /**
  * Bean that represents a flight.
  */
-public class Route {
-    private final List<Flight> flights;
+public class Flight {
+    private final List<Segment> segments;
 
-    Route(final List<Flight> segs) {
-        flights = segs;
+    Flight(final List<Segment> segs) {
+        segments = segs;
     }
 
-    List<Flight> getSegments() {
-        return flights;
+    List<Segment> getSegments() {
+        return segments;
     }
 
     @Override
     public String toString() {
-        return flights.stream().map(Object::toString)
+        return segments.stream().map(Object::toString)
                 .collect(Collectors.joining(" "));
     }
 }
@@ -31,12 +31,12 @@ public class Route {
 /**
  * Bean that represents a flight segment.
  */
-class Flight {
+class Segment {
     private final LocalDateTime departureDate;
 
     private final LocalDateTime arrivalDate;
 
-    Flight(final LocalDateTime dep, final LocalDateTime arr) {
+    Segment(final LocalDateTime dep, final LocalDateTime arr) {
         departureDate = Objects.requireNonNull(dep);
         arrivalDate = Objects.requireNonNull(arr);
     }

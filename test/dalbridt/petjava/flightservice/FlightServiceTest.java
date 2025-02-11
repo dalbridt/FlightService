@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 
 public class FlightServiceTest {
     private FlightService service;
-    private List<Route> itineraries;
+    private List<Flight> itineraries;
 
     @BeforeEach
     void setUp() {
@@ -22,25 +22,25 @@ public class FlightServiceTest {
 
     @Test
     void myFirstTest(){
-        List <Predicate<Route>> filters = Arrays.asList(
+        List <Predicate<Flight>> filters = Arrays.asList(
                 new TransferTimeFilter(2),
                 new InconsistentDateFlightFilter(),
                 new DepartedFlightFilter(LocalDateTime.of(2025, 2, 9, 19, 0, 0))
         );
         service.setFilterParams(filters);
-        List <Route> filteredItineraries = service.filter(itineraries);
+        List <Flight> filteredItineraries = service.filter(itineraries);
         assertEquals(3, filteredItineraries.size());
     }
 
     @Test
     void mySecTest(){
-        List <Predicate<Route>> filters = Arrays.asList(
+        List <Predicate<Flight>> filters = Arrays.asList(
                 new TransferTimeFilter(2),
                 new InconsistentDateFlightFilter(),
                 new DepartedFlightFilter(LocalDateTime.of(2025, 2, 9, 19, 0, 0))
         );
         service.setFilterParams(filters);
-        List <Route> filteredItineraries = service.filter(itineraries);
+        List <Flight> filteredItineraries = service.filter(itineraries);
         assertEquals(3, filteredItineraries.size());
     }
 

@@ -9,7 +9,7 @@ import java.util.List;
  * Factory class to get sample list of flights.
  */
 class FlightBuilder {
-    static List<Route> createFlights() {
+    static List<Flight> createFlights() {
         LocalDateTime threeDaysFromNow = LocalDateTime.now().plusDays(3);
         return Arrays.asList(
                 //1 A normal flight with two hour duration
@@ -33,16 +33,16 @@ class FlightBuilder {
                         threeDaysFromNow.plusHours(6), threeDaysFromNow.plusHours(7)));
     }
 
-    private static Route createFlight(final LocalDateTime... dates) {
+    private static Flight createFlight(final LocalDateTime... dates) {
         if ((dates.length % 2) != 0) {
             throw new IllegalArgumentException(
                     "you must pass an even number of dates");
         }
-        List<Flight> flights = new ArrayList<>(dates.length / 2);
+        List<Segment> segments = new ArrayList<>(dates.length / 2);
         for (int i = 0; i < (dates.length - 1); i += 2) {
-            flights.add(new Flight(dates[i], dates[i + 1]));
+            segments.add(new Segment(dates[i], dates[i + 1]));
         }
-        return new Route(flights);
+        return new Flight(segments);
     }
 }
 

@@ -3,7 +3,7 @@ package dalbridt.petjava.flightservice;
 import java.time.LocalDateTime;
 import java.util.function.Predicate;
 
-public class DepartedFlightFilter implements Predicate<Route> { // reference time instead of now
+public class DepartedFlightFilter implements Predicate<Flight> { // reference time instead of now
     private LocalDateTime whenDeparted;
 
     public DepartedFlightFilter(LocalDateTime whenDeparted) {
@@ -11,9 +11,9 @@ public class DepartedFlightFilter implements Predicate<Route> { // reference tim
     }
 
     @Override
-    public boolean test(Route route) {
-        for (Flight flight : route.getSegments()) {
-            if (flight.getDepartureDate().isBefore(whenDeparted)) {
+    public boolean test(Flight flight) {
+        for (Segment segment : flight.getSegments()) {
+            if (segment.getDepartureDate().isBefore(whenDeparted)) {
                 return false;
             }
         }
