@@ -3,6 +3,7 @@ package dalbridt.petjava.flightservice;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 import java.util.function.Predicate;
 
 public class FlightService {
@@ -58,5 +59,16 @@ public class FlightService {
             System.out.println(count[0]++ + " " + f);
         });
 
+    }
+
+    public String [] getPpoints(){
+        String [] flightAB = new String[2];
+        Scanner sc = new Scanner(System.in);
+        System.out.println("PLZ enter departure airport code:");
+        String dep = sc.nextLine();
+        System.out.println("PLZ enter arrival airport code:");
+        String arr = sc.nextLine();
+
+        return flightAB;
     }
 }
