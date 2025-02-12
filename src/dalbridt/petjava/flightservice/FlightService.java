@@ -8,9 +8,9 @@ import java.util.function.Predicate;
 
 public class FlightService {
     private List<Predicate<Flight>> filterParams;
-    public FlightService() {} // TODO create empty constructor for beforeeach method in tests?
+    public FlightService() {} // TODO delete constructor or add validation in methods
     public FlightService(List<Predicate<Flight>> params) {
-        this.filterParams = filterParams;
+        this.filterParams = params;
     }
 
     @SafeVarargs
@@ -39,18 +39,6 @@ public class FlightService {
                 .toList();
     }
 
-    public List<Flight> filter_collections(List<Flight> flights) {
-        for(Predicate<Flight> p : filterParams) {
-            Iterator<Flight> it = flights.iterator();
-            while(it.hasNext()) {
-                if(!p.test(it.next())) {
-                    it.remove();
-                }
-            }
-        }
-        return flights;
-    }
-
     public void printFlights(List<Flight> flights, String header) {
         System.out.println("--- " + header + " ---");
         int[] count = {1};
@@ -62,13 +50,13 @@ public class FlightService {
     }
 
     public String [] getPpoints(){
-        String [] flightAB = new String[2];
+        String [] airportAB = new String[2];
         Scanner sc = new Scanner(System.in);
         System.out.println("PLZ enter departure airport code:");
-        String dep = sc.nextLine();
+        airportAB[0] = sc.nextLine();
         System.out.println("PLZ enter arrival airport code:");
-        String arr = sc.nextLine();
+        airportAB[1]= sc.nextLine();
 
-        return flightAB;
+        return airportAB;
     }
 }
