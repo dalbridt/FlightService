@@ -8,13 +8,18 @@ import java.util.Objects;
  * Bean that represents a flight segment.
  */
 public class Segment {
-    private final LocalDateTime departureDate;
+    private LocalDateTime departureDate;
 
-    private final LocalDateTime arrivalDate;
+    private LocalDateTime arrivalDate;
 
     private String departureAirport;
     private String arrivalAirport;
     private String flightNo;
+
+   public Segment(String departureAirport, String arrivalAirport) {
+       this.departureAirport = departureAirport;
+       this.arrivalAirport = arrivalAirport;
+   }
 
     public Segment(final LocalDateTime dep, final LocalDateTime arr) {
         this.departureDate = Objects.requireNonNull(dep);

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @WebServlet("/")
@@ -43,7 +44,8 @@ public class FlightServiceServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html");
         PrintWriter out = response.getWriter();
-        out.write("<h1> DEPLOYED - Redeployed    !!221112!!!  </h1>");
+        LocalDateTime now = LocalDateTime.now();
+        out.write("<h1>  Deployed </h1>" + now);
         out.write("<h1> enter departure and arrival airport codes: </h1>");
         out.write("<form action='hello' method='post'>");
         out.write("<input type='text' name='airportCodeA' />");
@@ -69,9 +71,8 @@ public class FlightServiceServlet extends HttpServlet {
         FlightDaoService dbc = new FlightDaoService(ds);
         try {
             if (dbc.validateABpoints(codeA, codeB)) {
-                int res = dbc.getSeatsAmount(codeA, codeB);
-                out.write("seats amount on a plane between " + codeA + " and " + codeB + ":" + res);
-//                out.write(res);
+                List <Flight> res= dbc.getFlightsWithTransit(codeA, codeB);
+                out.write(convertTojson(res));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -84,7 +85,7 @@ public class FlightServiceServlet extends HttpServlet {
                && (codeB.length() == 3 && codeB.matches("\\w+"));
     }
 
-    String convertTojson(List<String> list) throws JsonProcessingException {
+    String convertTojson(List<Flight> list) throws JsonProcessingException {
         return new ObjectMapper().writeValueAsString(list);
     }
 }
