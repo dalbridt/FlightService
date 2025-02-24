@@ -1,0 +1,14 @@
+<Context>
+    <Resource
+<!--            name="jdbc/myDB"-->
+<!--              auth="Container"-->
+<!--              type="javax.sql.DataSource" -->
+<!--              driverClassName="com.mysql.cj.jdbc.Driver"-->
+              url="jdbc:postgresql://localhost:5432/demo"
+              username="admin"
+              password="pwd1234"
+
+<!--              maxWaitMillis="-1"/>-->
+</Context>
+
+>

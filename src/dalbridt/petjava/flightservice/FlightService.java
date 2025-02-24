@@ -49,14 +49,4 @@ public class FlightService {
 
     }
 
-    public String [] getPpoints(){
-        String [] airportAB = new String[2];
-        Scanner sc = new Scanner(System.in);
-        System.out.println("PLZ enter departure airport code:");
-        airportAB[0] = sc.nextLine();
-        System.out.println("PLZ enter arrival airport code:");
-        airportAB[1]= sc.nextLine();
-
-        return airportAB;
-    }
 }
