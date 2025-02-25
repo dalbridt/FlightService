@@ -14,7 +14,9 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @WebServlet("/")
 public class FlightServiceServlet extends HttpServlet {
@@ -34,18 +36,14 @@ public class FlightServiceServlet extends HttpServlet {
         }
     }
 
-//    @Override
-//    public void init() throws ServletException {
-//        super.init();
-//
-//    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html");
         PrintWriter out = response.getWriter();
         LocalDateTime now = LocalDateTime.now();
-        out.write("<h1>  Deployed </h1>" + now);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        out.write("<h1>  Deployed </h1>" + now.format(formatter));
         out.write("<h1> enter departure and arrival airport codes: </h1>");
         out.write("<form action='hello' method='post'>");
         out.write("<input type='text' name='airportCodeA' />");
@@ -71,7 +69,7 @@ public class FlightServiceServlet extends HttpServlet {
         FlightDaoService dbc = new FlightDaoService(ds);
         try {
             if (dbc.validateABpoints(codeA, codeB)) {
-                List <Flight> res= dbc.getFlightsWithTransit(codeA, codeB);
+                List <Flight> res= dbc.getallFlightsBetweenPoints(codeA, codeB);
                 out.write(convertTojson(res));
             }
         } catch (SQLException e) {
@@ -86,6 +84,8 @@ public class FlightServiceServlet extends HttpServlet {
     }
 
     String convertTojson(List<Flight> list) throws JsonProcessingException {
-        return new ObjectMapper().writeValueAsString(list);
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        return objectMapper.writeValueAsString(list);
     }
 }
