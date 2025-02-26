@@ -15,6 +15,7 @@ public class Segment {
     private String departureAirport;
     private String arrivalAirport;
     private String flightNo;
+    private String flightId;
 
    public Segment(String departureAirport, String arrivalAirport) {
        this.departureAirport = departureAirport;
@@ -79,5 +80,13 @@ public class Segment {
 
     String getFlightNo() {
         return flightNo;
+    }
+
+    public String getFlightId() {
+        return flightId;
+    }
+
+    public void setFlightId(String flightId) {
+        this.flightId = flightId;
     }
 }

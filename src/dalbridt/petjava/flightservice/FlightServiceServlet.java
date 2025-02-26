@@ -20,10 +20,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @WebServlet("/")
 public class FlightServiceServlet extends HttpServlet {
-    private static final BasicDataSource ds = new BasicDataSource();
+    private  BasicDataSource ds;
+    private  FlightDaoService flightDaoService;
 
-    //todo перенести в конструктор получение connection
-    static {
+    @Override
+    public void init()  {
+        this.ds = new BasicDataSource();
         ds.setDriverClassName("org.postgresql.Driver");
         ds.setUrl("jdbc:postgresql://localhost:5432/demo");
         ds.setUsername("admin");
@@ -34,8 +36,8 @@ public class FlightServiceServlet extends HttpServlet {
             System.out.println("‼️" + e.getMessage());
             throw new RuntimeException(e.getMessage(), e);
         }
+        this.flightDaoService = new FlightDaoService(ds);
     }
-
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -43,7 +45,7 @@ public class FlightServiceServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        out.write("<h1>  Deployed </h1>" + now.format(formatter));
+        out.write("<h1>  HI USER </h1>" + now.format(formatter));
         out.write("<h1> enter departure and arrival airport codes: </h1>");
         out.write("<form action='hello' method='post'>");
         out.write("<input type='text' name='airportCodeA' />");
@@ -60,22 +62,16 @@ public class FlightServiceServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
         String codeA = request.getParameter("airportCodeA");
         String codeB = request.getParameter("airportCodeB");
-
-        if (!validateInput(codeA, codeB)) {
-            response.sendRedirect("hello");
-            return;
-        }
-
-        FlightDaoService dbc = new FlightDaoService(ds);
         try {
-            if (dbc.validateABpoints(codeA, codeB)) {
-                List <Flight> res= dbc.getallFlightsBetweenPoints(codeA, codeB);
+            if (flightDaoService.validateABpoints(codeA, codeB)) {
+                List <Flight> res= flightDaoService.getallFlightsBetweenPoints(codeA, codeB);
                 out.write(convertTojson(res));
+                out.close();
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        out.close();
+
     }
 
     protected boolean validateInput(String codeA, String codeB) {
@@ -83,7 +79,7 @@ public class FlightServiceServlet extends HttpServlet {
                && (codeB.length() == 3 && codeB.matches("\\w+"));
     }
 
-    String convertTojson(List<Flight> list) throws JsonProcessingException {
+    private String convertTojson(List<Flight> list) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         return objectMapper.writeValueAsString(list);
