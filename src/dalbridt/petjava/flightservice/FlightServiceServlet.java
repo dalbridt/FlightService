@@ -12,10 +12,10 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @WebServlet("/")
@@ -40,38 +40,51 @@ public class FlightServiceServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html");
-        PrintWriter out = response.getWriter();
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        out.write("<h1>  HI USER </h1>" + now.format(formatter));
-        out.write("<h1> enter departure and arrival airport codes: </h1>");
-        out.write("<form action='hello' method='post'>");
-        out.write("<input type='text' name='airportCodeA' />");
-        out.write("<br/>");
-        out.write("<input type='text' name='airportCodeB' />");
-        out.write("<br/>");
-        out.write("<input type='submit' value='Submit' />");
-        out.write("</form>");
-        out.close();
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String codeA = req.getParameter("departure");
+        String codeB = req.getParameter("arrival");
+        String servletPath = req.getServletPath();
+
+        if("/getFlightsWithTransit".equals(servletPath)) {
+            if(!validateInput(codeA, codeB)){
+                resp.sendError(HttpServletResponse.SC_BAD_REQUEST , "not valid airport code");
+            }
+            handleGetFlightsWithTransit(req, resp);
+        }else if("/getSeatsAmount".equals(servletPath)) {
+            if(!validateInput(codeA, codeB)){
+                resp.sendError(HttpServletResponse.SC_BAD_REQUEST , "not valid airport code");
+            }
+            handleGetSeatsAmount(req, resp);
+        } else {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "I see you, but not : " + req.getServletPath());
+        }
     }
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        PrintWriter out = response.getWriter();
-        String codeA = request.getParameter("airportCodeA");
-        String codeB = request.getParameter("airportCodeB");
+    private void handleGetFlightsWithTransit(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String codeA = req.getParameter("departure");
+        String codeB = req.getParameter("arrival");
+        PrintWriter out = resp.getWriter();
         try {
             if (flightDaoService.validateABpoints(codeA, codeB)) {
-                List <Flight> res= flightDaoService.getallFlightsBetweenPoints(codeA, codeB);
+                List <Flight> res= flightDaoService.getFlightsWithTransit(codeA, codeB);
                 out.write(convertTojson(res));
                 out.close();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
+    }
+    private void handleGetSeatsAmount(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String codeA = req.getParameter("departure");
+        String codeB = req.getParameter("arrival");
+        try {
+            if (flightDaoService.validateABpoints(codeA, codeB)) {
+                int res= flightDaoService.getSeatsAmount(codeA, codeB);
+                resp.getWriter().write(String.valueOf(res));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected boolean validateInput(String codeA, String codeB) {
@@ -85,3 +98,5 @@ public class FlightServiceServlet extends HttpServlet {
         return objectMapper.writeValueAsString(list);
     }
 }
+
+// http://localhost:8080/flightService/?action=getFlightsWithTransit&departure=DME&arrival=LED
