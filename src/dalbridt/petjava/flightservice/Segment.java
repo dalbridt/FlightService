@@ -53,8 +53,8 @@ public class Segment {
     @Override
     public String toString() {
         DateTimeFormatter fmt =
-                DateTimeFormatter.ofPattern("dd MMMM , HH:mm ");
-        return '[' + departureAirport + " " + departureDate.format(fmt) + "| " + arrivalAirport + " " + arrivalDate.format(fmt)
+                DateTimeFormatter.ofPattern("yy dd MMMM , HH:mm ");
+        return flightNo + ' ' +'[' + departureAirport + " " + departureDate.format(fmt) + "| " + arrivalAirport + " " + arrivalDate.format(fmt)
                + ']';
     }
 
@@ -64,6 +64,13 @@ public class Segment {
 
     public void setArrivalAirport(final String airport) {
         arrivalAirport = airport;
+    }
+
+    public void setDepartureDate(LocalDateTime date) {
+       this.departureDate = date;
+    }
+    public void setArrivalDate(String date) {
+       this.arrivalDate = LocalDateTime.parse(date);
     }
 
     public String getDepartureAirport() {
@@ -86,7 +93,7 @@ public class Segment {
         return flightId;
     }
 
-    public void setFlightId(String flightId) {
-        this.flightId = flightId;
-    }
+//    public void setFlightId(String flightId) { // db does automaticly
+//        this.flightId = flightId;
+//    }
 }
