@@ -19,6 +19,7 @@ public class FlightDaoService {
     private final String getFlWTransitQuery = "with f1 as (select distinct flights.departure_airport , flights.arrival_airport  from flights\n" + "where flights.departure_airport = ?), \n" + "f2 as  (select distinct flights.departure_airport , flights.arrival_airport  from flights\n" + "where flights.arrival_airport  = ?)\n" + "select f1.departure_airport, f1.arrival_airport as transit_airport, f2.arrival_airport   from f1\n" + "join f2 on f1.arrival_airport = f2.departure_airport";
     private final String getAllFlightsBetweenPointsQuery = "with f1 as (select flights.departure_airport,  flights.scheduled_departure, flights.arrival_airport, flights.scheduled_arrival  \n" + "from flights \n" + "where flights.departure_airport = ?), \n" + "f2 as  (select flights.departure_airport ,  flights.scheduled_departure ,\n" + "flights.arrival_airport, flights.scheduled_arrival  from flights \n" + "where flights.arrival_airport  = ?)\n" + "select * from f1 \n" + "join f2 on f1.arrival_airport = f2.departure_airport \n";
     private final String addNewFlightQuery = "insert into flights (flight_no, scheduled_departure, scheduled_arrival, departure_airport,arrival_airport, status, aircraft_code)\n" + "values (?, ?, ?, \n" + "?, ?, ?, ?)";
+    private final String getFlightByIdQuery = "select * from flights where flight_id = ?";
 
     public FlightDaoService(BasicDataSource ds) {
         this.ds = ds;
@@ -94,14 +95,24 @@ public class FlightDaoService {
             pstmt.setString(1, departure_airport);
             pstmt.setString(2, arrival_airport);
             try (ResultSet rs = pstmt.executeQuery()) {
-               return mapToFlightsWithTransitList(rs);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+                return mapToFlightsWithTransitList(rs);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            throw new RuntimeException(e.getMessage(), e);
         }
-        return List.of();
+    }
+
+    public Segment getFlightsByFlightId(int flightId) {
+        try (PreparedStatement pstmt = ds.getConnection().prepareStatement(getFlightByIdQuery)) {
+            pstmt.setInt(1, flightId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return maptoSegment(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     public boolean addFlight(Segment segment) {
@@ -121,17 +132,17 @@ public class FlightDaoService {
         }
     }
 
-    private List <Flight> mapToFlightsWithTransitList(ResultSet rs) throws SQLException {
-        List <Flight> flightsWithTransit = new ArrayList<>();
+    private List<Flight> mapToFlightsWithTransitList(ResultSet rs) throws SQLException {
+        List<Flight> flightsWithTransit = new ArrayList<>();
         while (rs.next()) {
             String seg1Dep = rs.getString(1);
             LocalDateTime seg1DepTime = rs.getTimestamp(2) != null ? rs.getTimestamp(2).toLocalDateTime() : null;
             String seg1Arriv = rs.getString(3);
-            LocalDateTime seg1ArrivTime = rs.getTimestamp(4)  != null ? rs.getTimestamp(4).toLocalDateTime() : null;
+            LocalDateTime seg1ArrivTime = rs.getTimestamp(4) != null ? rs.getTimestamp(4).toLocalDateTime() : null;
             String seg2Dep = rs.getString(5);
             LocalDateTime seg2DepTime = rs.getTimestamp(6) != null ? rs.getTimestamp(6).toLocalDateTime() : null;
             String seg2Arriv = rs.getString(7);
-            LocalDateTime seg2ArrivTime = rs.getTimestamp(8)  != null ? rs.getTimestamp(8).toLocalDateTime() : null;
+            LocalDateTime seg2ArrivTime = rs.getTimestamp(8) != null ? rs.getTimestamp(8).toLocalDateTime() : null;
 
             List<Segment> segments = List.of(new Segment(seg1DepTime, seg1ArrivTime, seg1Dep, seg1Arriv), new Segment(seg2DepTime, seg2ArrivTime, seg2Dep, seg2Arriv));
             Flight flight = new Flight(segments);
@@ -139,5 +150,24 @@ public class FlightDaoService {
         }
         return flightsWithTransit;
     }
+
+    private Segment maptoSegment(ResultSet rs) throws SQLException {
+        System.out.println("🎪🎪maptoSegment -- i'm alive by that point ");
+        if (rs.next()) {
+            int flightId = rs.getInt(1);
+            String flightNo = rs.getString(2);
+            LocalDateTime departureDate = rs.getTimestamp(3) != null ? rs.getTimestamp(3).toLocalDateTime() : null; // todo DB has constraint not null
+            LocalDateTime arrivalDate = rs.getTimestamp(4) != null ? rs.getTimestamp(4).toLocalDateTime() : null;
+            String departureAirport = rs.getString(5);
+            String arrivalAirport = rs.getString(6);
+
+            Segment segment = new Segment(departureDate, arrivalDate, departureAirport, arrivalAirport, flightNo);
+            segment.setFlightId(flightId);
+            return segment;
+        } else {
+            throw new SQLException("Resultset is empty");
+        }
+    }
+
 
 }

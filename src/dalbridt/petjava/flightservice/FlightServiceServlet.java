@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -41,21 +40,27 @@ public class FlightServiceServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String codeA = req.getParameter("departure");
-        String codeB = req.getParameter("arrival");
         String servletPath = req.getServletPath();
 
         if ("/getFlightsWithTransit".equals(servletPath)) {
+            String codeA = req.getParameter("departure");
+            String codeB = req.getParameter("arrival");
             if (!validateInput(codeA, codeB)) {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not valid airport code");
             }
             handleGetFlightsWithTransit(req, resp);
         } else if ("/getSeatsAmount".equals(servletPath)) {
+            String codeA = req.getParameter("departure");
+            String codeB = req.getParameter("arrival");
             if (!validateInput(codeA, codeB)) {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not valid airport code");
             }
             handleGetSeatsAmount(req, resp);
-        } else {
+        } else if ("/getFlightInfo".equals(servletPath)) {
+            if (Integer.parseInt(req.getParameter("flightId")) > 0) {
+                handleGetFlightInfo(req, resp);
+            }
+        }else {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND, "I see you, but not : " + req.getServletPath());
         }
     }
@@ -75,7 +80,7 @@ public class FlightServiceServlet extends HttpServlet {
         try {
             if (flightDaoService.validateABpoints(codeA, codeB)) {
                 List<Flight> res = flightDaoService.getFlightsWithTransit(codeA, codeB);
-                out.write(convertToJson(res));
+                out.write(convertFlightToJson(res));
                 out.close();
             }
         } catch (Exception e) {
@@ -114,6 +119,18 @@ public class FlightServiceServlet extends HttpServlet {
         }
     }
 
+    private void handleGetFlightInfo(HttpServletRequest req, HttpServletResponse resp) {
+        int id = Integer.parseInt(req.getParameter("flightId"));
+        try {
+            Segment segment = flightDaoService.getFlightsByFlightId(id);
+            if (segment != null) {
+                resp.getWriter().write(convetSegmentToJson(segment));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private Segment mapSegmentFromRequest(HttpServletRequest req) {
         String codeA = req.getParameter("departure");
         String codeB = req.getParameter("arrival");
@@ -132,11 +149,20 @@ public class FlightServiceServlet extends HttpServlet {
                && (codeB.length() == 3 && codeB.matches("\\w+"));
     }
 
-    private String convertToJson(List<Flight> list) throws JsonProcessingException {
+    private String convertFlightToJson(List<Flight> list) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         return objectMapper.writeValueAsString(list);
     }
+
+    private String convetSegmentToJson(Segment segment) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        String json = objectMapper.writeValueAsString(segment);
+        return objectMapper.writeValueAsString(json);
+    }
 }
 
 // http://localhost:8080/flightService/getSeatsAmount?departure=LED&arrival=DME
+
+// http://localhost:8080/flightService/addNewFlight?departure=SVO&arrival=DME&departureDate=2025-04-05T05:35:00&arrivalDate=2025-04-05T06:35:00&flightNo=PG0407
