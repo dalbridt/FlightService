@@ -2,7 +2,6 @@ package dalbridt.petjava.flightservice;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,62 +12,99 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import java.util.function.Predicate;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+/**
+ * entry point to the app
+ * managing http requests
+ */
 
 @WebServlet("/")
 public class FlightServiceServlet extends HttpServlet {
     private BasicDataSource ds;
-    private FlightDaoService flightDaoService;
+    private FlightDaoService flightDaoService; // todo не будет доступа напрямую, только через flight service
+    private FlightService flightService;
+    private ObjectMapper objectMapper;
 
     @Override
     public void init() {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        Properties properties = new Properties();
+        try {
+            properties.load(this.getClass().getClassLoader().getResourceAsStream("servlet.properties"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         this.ds = new BasicDataSource();
-        ds.setDriverClassName("org.postgresql.Driver");
-        ds.setUrl("jdbc:postgresql://localhost:5432/demo");
-        ds.setUsername("admin");
-        ds.setPassword("pwd1234");
+        ds.setDriverClassName(properties.getProperty("db.driver"));
+        ds.setUrl(properties.getProperty("db.url"));
+        ds.setUsername(properties.getProperty("db.username"));
+        ds.setPassword(properties.getProperty("db.password"));
+
         try (Connection connection = ds.getConnection()) {
             System.out.println("☘️connection established" + connection);
         } catch (Exception e) {
             System.out.println("‼️" + e.getMessage());
             throw new RuntimeException(e.getMessage(), e);
         }
-        this.flightDaoService = new FlightDaoService(ds);
+        this.flightDaoService = new FlightDaoService(ds); // todo будет пробрасывание зависимостей, но не будет дао напрчямую
+        this.flightService = new FlightService(flightDaoService);
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String servletPath = req.getServletPath();
 
-        if ("/getFlightsWithTransit".equals(servletPath)) {
-            String codeA = req.getParameter("departure");
-            String codeB = req.getParameter("arrival");
-            if (!validateInput(codeA, codeB)) {
-                resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not valid airport code");
+        switch (servletPath) {
+            case "/getflightswithtransit" -> {
+                String codeA = req.getParameter("departure"); // todo дубдируется три раза, убрать в метод?
+
+                String codeB = req.getParameter("arrival");
+                if (!validateInput(codeA, codeB)) {
+                    resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not valid airport code");
+                }
+                handleGetFlightsWithTransit(req, resp);
             }
-            handleGetFlightsWithTransit(req, resp);
-        } else if ("/getSeatsAmount".equals(servletPath)) {
-            String codeA = req.getParameter("departure");
-            String codeB = req.getParameter("arrival");
-            if (!validateInput(codeA, codeB)) {
-                resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not valid airport code");
+            case "/getseatsamount" -> {
+                String codeA = req.getParameter("departure");
+                String codeB = req.getParameter("arrival");
+                if (!validateInput(codeA, codeB)) {
+                    resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not valid airport code");
+                }
+                handleGetSeatsAmount(req, resp);
             }
-            handleGetSeatsAmount(req, resp);
-        } else if ("/getFlightInfo".equals(servletPath)) {
-            if (Integer.parseInt(req.getParameter("flightId")) > 0) {
-                handleGetFlightInfo(req, resp);
+            case "/getflightinfo" -> {
+                if (Integer.parseInt(req.getParameter("flightId")) > 0) {
+                    handleGetFlightInfo(req, resp);
+                }
             }
-        }else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "I see you, but not : " + req.getServletPath());
+            case "/filterflights" -> {
+                String codeA = req.getParameter("departure");
+                String codeB = req.getParameter("arrival");
+                String earliestDepartureTime = req.getParameter("earliestDepartureTime");
+                String maxGroundTimeHours = req.getParameter("maxGroundTimeHours");
+                if (!validateInput(codeA, codeB) || (earliestDepartureTime == null || maxGroundTimeHours == null)) {
+                    resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "not enough request params: earliest departure time "
+                                                                       + earliestDepartureTime + " max ground time hours: " + maxGroundTimeHours);
+                }
+                handleFilterFlights(req, resp);
+            }
+            case null, default ->
+                    resp.sendError(HttpServletResponse.SC_NOT_FOUND, "I don't have this path : " + req.getServletPath());
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String servletPath = req.getServletPath();
-        if ("/addNewFlight".equals(servletPath)) {
+        if ("/addnewflight".equals(servletPath)) {
             handleAddNewFlight(req, resp);
         }
     }
@@ -124,11 +160,32 @@ public class FlightServiceServlet extends HttpServlet {
         try {
             Segment segment = flightDaoService.getFlightsByFlightId(id);
             if (segment != null) {
-                resp.getWriter().write(convetSegmentToJson(segment));
+                resp.getWriter().write(convertSegmentToJson(segment));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void handleFilterFlights(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String codeA = req.getParameter("departure");
+        String codeB = req.getParameter("arrival");
+        String earliestDepartureTime = req.getParameter("earliestDepartureTime");
+        String maxGroundTimeHours = req.getParameter("maxGroundTimeHours");
+        List<Predicate<Flight>> params = new ArrayList<>();
+        if (earliestDepartureTime != null) {
+            LocalTime departureTime = LocalTime.parse(earliestDepartureTime);
+            DepartureTimeFilter departureTimeFilter = new DepartureTimeFilter(departureTime);
+            params.add(departureTimeFilter);
+        }
+        if (maxGroundTimeHours != null) {
+            int groundHours = Integer.parseInt(maxGroundTimeHours);
+            TransferTimeFilter transferTimeFilter = new TransferTimeFilter(groundHours);
+            params.add(transferTimeFilter);
+        }
+        List<Flight> filteredFlights = flightService.filterFlights(codeA, codeB, params);
+        resp.getWriter().write(convertFlightToJson(filteredFlights));
+
     }
 
     private Segment mapSegmentFromRequest(HttpServletRequest req) {
@@ -137,9 +194,9 @@ public class FlightServiceServlet extends HttpServlet {
         String flightNo = req.getParameter("flightNo");
         LocalDateTime departureTime = LocalDateTime.parse(req.getParameter("departureDate"));
         LocalDateTime arrivalTime = LocalDateTime.parse(req.getParameter("arrivalDate"));
-        boolean paramsAreValid = validateInput(codeA, codeB) && flightNo != null && departureTime !=  null && arrivalTime != null;
+        boolean paramsAreValid = validateInput(codeA, codeB) && flightNo != null && departureTime != null && arrivalTime != null;
         if (paramsAreValid) {
-            return new Segment(departureTime,arrivalTime, codeA, codeB, flightNo);
+            return new Segment(departureTime, arrivalTime, codeA, codeB, flightNo);
         }
         return null;
     }
@@ -150,14 +207,10 @@ public class FlightServiceServlet extends HttpServlet {
     }
 
     private String convertFlightToJson(List<Flight> list) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
         return objectMapper.writeValueAsString(list);
     }
 
-    private String convetSegmentToJson(Segment segment) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+    private String convertSegmentToJson(Segment segment) throws JsonProcessingException {
         String json = objectMapper.writeValueAsString(segment);
         return objectMapper.writeValueAsString(json);
     }

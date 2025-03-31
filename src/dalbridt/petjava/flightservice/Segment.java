@@ -16,6 +16,7 @@ public class Segment {
     private String arrivalAirport;
     private String flightNo;
     private int flightId;
+    private String aircraftCode; // todo доделать использование
 
    public Segment(String departureAirport, String arrivalAirport) {
        this.departureAirport = departureAirport;

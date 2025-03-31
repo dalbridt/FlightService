@@ -1,16 +1,17 @@
 package dalbridt.petjava.flightservice;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class FlightService {
+    private FlightDaoService flightDaoService;
     private List<Predicate<Flight>> filterParams;
     public FlightService() {} // TODO delete constructor or add validation in methods
     public FlightService(List<Predicate<Flight>> params) {
         this.filterParams = params;
+    }
+    public FlightService(FlightDaoService flightDaoService) {
+        this.flightDaoService = flightDaoService;
     }
 
     @SafeVarargs
@@ -18,9 +19,22 @@ public class FlightService {
         this.filterParams = Arrays.asList(params);
     }
 
+
+
     public void setFilterParams(List<Predicate<Flight>> params) {
         this.filterParams = params;
     }
+
+    public List<Flight> filterFlights(String codeA, String codeB, List<Predicate<Flight>> params){
+        // todo
+       if( flightDaoService.validateABpoints(codeA, codeB)){
+           List <Flight> flights = flightDaoService.getallFlightsBetweenPoints(codeA, codeB);
+           setFilterParams(params);
+          return filter(flights);
+       }
+       return null;
+    }
+
 
     public String getFilterParams() {
         StringBuilder builder = new StringBuilder();
@@ -40,7 +54,6 @@ public class FlightService {
     }
 
     public void printFlights(List<Flight> flights, String header) {
-        System.out.println("--- " + header + " ---");
         int[] count = {1};
 
         flights.forEach(f -> {

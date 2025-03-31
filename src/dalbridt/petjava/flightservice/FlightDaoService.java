@@ -17,7 +17,21 @@ public class FlightDaoService {
     private final String setIsActiveQuery = "update flights\n" + "set is_active=?\n" + "where flights.flight_id = ?\n";
     private final String getSeatsAmountQuery = "select count(s.seat_no) as seat_count\n" + "from seats s \n" + "where s.aircraft_code = (select f.aircraft_code from flights f where f.departure_airport = ? \n" + "  and f.arrival_airport = ? limit 1)\n" + "group by s.aircraft_code";
     private final String getFlWTransitQuery = "with f1 as (select distinct flights.departure_airport , flights.arrival_airport  from flights\n" + "where flights.departure_airport = ?), \n" + "f2 as  (select distinct flights.departure_airport , flights.arrival_airport  from flights\n" + "where flights.arrival_airport  = ?)\n" + "select f1.departure_airport, f1.arrival_airport as transit_airport, f2.arrival_airport   from f1\n" + "join f2 on f1.arrival_airport = f2.departure_airport";
-    private final String getAllFlightsBetweenPointsQuery = "with f1 as (select flights.departure_airport,  flights.scheduled_departure, flights.arrival_airport, flights.scheduled_arrival  \n" + "from flights \n" + "where flights.departure_airport = ?), \n" + "f2 as  (select flights.departure_airport ,  flights.scheduled_departure ,\n" + "flights.arrival_airport, flights.scheduled_arrival  from flights \n" + "where flights.arrival_airport  = ?)\n" + "select * from f1 \n" + "join f2 on f1.arrival_airport = f2.departure_airport \n";
+    private final String getAllFlightsBetweenPointsQuery = "with f1 as (select distinct on (scheduled_departure::time , arrival_airport) \n" +
+                                                           "flight_id, flight_no, scheduled_departure, scheduled_arrival, departure_airport, arrival_airport, aircraft_code \n" +
+                                                           "from flights \n" +
+                                                           "where flights.departure_airport = ?\n" +
+                                                           "order by scheduled_departure::time  asc),\n" +
+                                                           "f2 as (select distinct on (scheduled_departure::time, departure_airport) \n" +
+                                                           "flight_id, flight_no, scheduled_departure, scheduled_arrival, departure_airport, arrival_airport, aircraft_code \n" +
+                                                           "from flights \n" +
+                                                           "where flights.arrival_airport  = ?\n" +
+                                                           "order by scheduled_departure::time  asc)\n" +
+                                                           "select *\n" +
+                                                           "from f1\n" +
+                                                           "join f2 on f1.arrival_airport = f2.departure_airport";
+
+
     private final String addNewFlightQuery = "insert into flights (flight_no, scheduled_departure, scheduled_arrival, departure_airport,arrival_airport, status, aircraft_code)\n" + "values (?, ?, ?, \n" + "?, ?, ?, ?)";
     private final String getFlightByIdQuery = "select * from flights where flight_id = ?";
 
@@ -133,6 +147,7 @@ public class FlightDaoService {
     }
 
     private List<Flight> mapToFlightsWithTransitList(ResultSet rs) throws SQLException {
+        // todo в новом запросе не совпадает очередность колонок
         List<Flight> flightsWithTransit = new ArrayList<>();
         while (rs.next()) {
             String seg1Dep = rs.getString(1);
