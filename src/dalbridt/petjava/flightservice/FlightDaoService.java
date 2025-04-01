@@ -16,7 +16,6 @@ public class FlightDaoService {
     private final String validateAirportsQuery = "select count (*) from airports_data\n" + "where airport_code = ? or airport_code = ?";
     private final String setIsActiveQuery = "update flights\n" + "set is_active=?\n" + "where flights.flight_id = ?\n";
     private final String getSeatsAmountQuery = "select count(s.seat_no) as seat_count\n" + "from seats s \n" + "where s.aircraft_code = (select f.aircraft_code from flights f where f.departure_airport = ? \n" + "  and f.arrival_airport = ? limit 1)\n" + "group by s.aircraft_code";
-    private final String getFlWTransitQuery = "with f1 as (select distinct flights.departure_airport , flights.arrival_airport  from flights\n" + "where flights.departure_airport = ?), \n" + "f2 as  (select distinct flights.departure_airport , flights.arrival_airport  from flights\n" + "where flights.arrival_airport  = ?)\n" + "select f1.departure_airport, f1.arrival_airport as transit_airport, f2.arrival_airport   from f1\n" + "join f2 on f1.arrival_airport = f2.departure_airport";
     private final String getAllFlightsBetweenPointsQuery = "with f1 as (select distinct on (scheduled_departure::time , arrival_airport) \n" +
                                                            "flight_id, flight_no, scheduled_departure, scheduled_arrival, departure_airport, arrival_airport, aircraft_code \n" +
                                                            "from flights \n" +
@@ -81,22 +80,15 @@ public class FlightDaoService {
     }
 
     public List<Flight> getFlightsWithTransit(String departure_airport, String arrival_airport) {
-        try (PreparedStatement pstmt = ds.getConnection().prepareStatement(getFlWTransitQuery)) {
+        // todo - что -то не то читает
+        try (PreparedStatement pstmt = ds.getConnection().prepareStatement(getAllFlightsBetweenPointsQuery)) {
             pstmt.setString(1, departure_airport);
             pstmt.setString(2, arrival_airport);
             try (ResultSet rs = pstmt.executeQuery()) {
-                List<Flight> flightsWithTransit = new ArrayList<>();
-                while (rs.next()) {
-                    String seg1Dep = rs.getString(1);
-                    String seg1Arriv = rs.getString(2);
-                    String seg2Dep = rs.getString(2);
-                    String seg2Arriv = rs.getString(3);
-
-                    List<Segment> segments = List.of(new Segment(seg1Dep, seg1Arriv), new Segment(seg2Dep, seg2Arriv));
-                    Flight flight = new Flight(segments);
-                    flightsWithTransit.add(flight);
+                if (!rs.isBeforeFirst()) {
+                    System.out.println("⚙️DEBUG: ResultSet is empty");
                 }
-                return flightsWithTransit;
+                return mapToFlightsWithTransitList(rs);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -147,19 +139,25 @@ public class FlightDaoService {
     }
 
     private List<Flight> mapToFlightsWithTransitList(ResultSet rs) throws SQLException {
-        // todo в новом запросе не совпадает очередность колонок
         List<Flight> flightsWithTransit = new ArrayList<>();
         while (rs.next()) {
-            String seg1Dep = rs.getString(1);
-            LocalDateTime seg1DepTime = rs.getTimestamp(2) != null ? rs.getTimestamp(2).toLocalDateTime() : null;
-            String seg1Arriv = rs.getString(3);
+            int seg1FlightId = rs.getInt(1);
+            String seg1flNo = rs.getString(2);
+            LocalDateTime seg1DepTime = rs.getTimestamp(3) != null ? rs.getTimestamp(3).toLocalDateTime() : null;
             LocalDateTime seg1ArrivTime = rs.getTimestamp(4) != null ? rs.getTimestamp(4).toLocalDateTime() : null;
-            String seg2Dep = rs.getString(5);
-            LocalDateTime seg2DepTime = rs.getTimestamp(6) != null ? rs.getTimestamp(6).toLocalDateTime() : null;
-            String seg2Arriv = rs.getString(7);
-            LocalDateTime seg2ArrivTime = rs.getTimestamp(8) != null ? rs.getTimestamp(8).toLocalDateTime() : null;
+            String seg1Dep = rs.getString(5);
+            String seg1Arriv = rs.getString(6);
+            String seg1aircraftCode = rs.getString(7);
 
-            List<Segment> segments = List.of(new Segment(seg1DepTime, seg1ArrivTime, seg1Dep, seg1Arriv), new Segment(seg2DepTime, seg2ArrivTime, seg2Dep, seg2Arriv));
+            int seg2FlightId = rs.getInt(8);
+            String seg2flNo = rs.getString(9);
+            LocalDateTime seg2DepTime = rs.getTimestamp(10) != null ? rs.getTimestamp(10).toLocalDateTime() : null;
+            LocalDateTime seg2ArrivTime = rs.getTimestamp(11) != null ? rs.getTimestamp(11).toLocalDateTime() : null;
+            String seg2Dep = rs.getString(12);
+            String seg2Arriv = rs.getString(13);
+            String seg2aircraftCode = rs.getString(14);
+
+            List<Segment> segments = List.of(new Segment(seg1DepTime, seg1ArrivTime, seg1Dep, seg1Arriv, seg1flNo, seg1FlightId, seg1aircraftCode), new Segment(seg2DepTime, seg2ArrivTime, seg2Dep, seg2Arriv, seg2flNo, seg2FlightId, seg2aircraftCode));
             Flight flight = new Flight(segments);
             flightsWithTransit.add(flight);
         }
@@ -167,7 +165,6 @@ public class FlightDaoService {
     }
 
     private Segment maptoSegment(ResultSet rs) throws SQLException {
-        System.out.println("🎪🎪maptoSegment -- i'm alive by that point ");
         if (rs.next()) {
             int flightId = rs.getInt(1);
             String flightNo = rs.getString(2);
@@ -175,8 +172,8 @@ public class FlightDaoService {
             LocalDateTime arrivalDate = rs.getTimestamp(4) != null ? rs.getTimestamp(4).toLocalDateTime() : null;
             String departureAirport = rs.getString(5);
             String arrivalAirport = rs.getString(6);
-
-            Segment segment = new Segment(departureDate, arrivalDate, departureAirport, arrivalAirport, flightNo);
+            String aircraftCode = rs.getString(8);
+            Segment segment = new Segment(departureDate, arrivalDate, departureAirport, arrivalAirport, flightNo, flightId, aircraftCode);
             segment.setFlightId(flightId);
             return segment;
         } else {

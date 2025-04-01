@@ -35,6 +35,17 @@ public class Segment {
         this.arrivalAirport = arri;
     }
 
+    public Segment(final LocalDateTime dep, final LocalDateTime arr, String depar, String arri, String flNo, int flId, String aircraftCode) {
+        this.departureDate = Objects.requireNonNull(dep);
+        this.arrivalDate = Objects.requireNonNull(arr);
+        this.flightNo = flNo;
+        this.departureAirport = depar;
+        this.arrivalAirport = arri;
+        this.flightId = flId;
+        this.aircraftCode = aircraftCode;
+    }
+
+
     public Segment(final LocalDateTime dep, final LocalDateTime arr, String depar, String arri, String flNo) {
         this.departureDate = Objects.requireNonNull(dep);
         this.arrivalDate = Objects.requireNonNull(arr);

@@ -64,7 +64,7 @@ public class FlightServiceServlet extends HttpServlet {
 
         switch (servletPath) {
             case "/getflightswithtransit" -> {
-                String codeA = req.getParameter("departure"); // todo дубдируется три раза, убрать в метод?
+                String codeA = req.getParameter("departure"); // todo дубдируется три раза, убрать в метод
 
                 String codeB = req.getParameter("arrival");
                 if (!validateInput(codeA, codeB)) {
